@@ -8,15 +8,21 @@ output: html_document
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(lubridate)
+library(readxl)
+library("janitor")
 ```
 
 
 ## Test data from https://ourworldindata.org/coronavirus-testing
+## Wgm = Wellcome Global Monitor data set from https://wellcome.org/reports/wellcome-global-monitor/2018?utm_source=link_newsv9&utm_campaign=item_261683&utm_medium=copy#downloads-4d1c
+
+## 
 
 
 ```{r Import Data}
 wid   <-read.csv("COVID19 Hackathon Dataset.csv")
 tests <-read.csv("owid-covid-data.csv")
+wgm   <-read_xlsx("wgm2018-dataset-crosstabs-all-countries.xlsx", 1)
 ```
 
 
@@ -25,7 +31,69 @@ tests<-tests %>%
   rename(Countries = location) %>% 
   rename(Date = date)
   
-joined<-left_join(wid, tests, by = NULL)
+joined<-left_join(wid, tests)
+
+```
+
+```{r clean wellcome global monitor}
+wgm_trust<-wgm %>% 
+  select(1:4)  %>% 
+  row_to_names(row_number = 2)  %>% 
+  fill(Question)  %>% 
+  filter(Question == "Q11B How much do you trust each of the following? How about the national government in this country? Do you trust them a lot, some, not much, or not at all?" | Question == "Wellcome Global Monitor Trust in Scientists Index (recoded into 3 categories)")  %>% 
+  rename (Countries = Country)  %>% 
+  rename( perc_pop = "Column N %")  %>% 
+  filter(Response != "Total") %>% 
+  group_by(Countries, Question) %>% 
+  filter(perc_pop == max(perc_pop))
+  
+
+
+
+
+  
+  
+joined<-left_join(joined, wgm_trust)
+
+
+```
+
+
+```{r Calculate cases per tests}
+all_df<-joined %>% 
+  mutate(caseptest = (RunTot_New_Cases/total_tests)) 
+
+all_df %>% 
+ggplot(aes(Date, caseptest, fill = Continent))+
+  geom_bar(stat = "identity") 
+  
+```
+
+```{r All Continents, cases over time trust in scientists index}
+joined %>% 
+  filter(Question == "Wellcome Global Monitor Trust in Scientists Index (recoded into 3 categories)") %>% 
+  ggplot(aes(Date, RunTot_New_Cases, fill = Response))+
+  geom_bar(stat="identity")
+
+
+
+
+
+
+
+```
+
+```{r cumalative cases vs govt trust}
+joined %>% 
+  filter(Question == "Q11B How much do you trust each of the following? How about the national government in this country? Do you trust them a lot, some, not much, or not at all?") %>% 
+  ggplot(aes(Date, RunTot_New_Cases, fill = Response))+
+  geom_bar(stat="identity")
+```
+
+
+```{r write joined}
+write.csv(joined, "all_trust_data.csv")
+
 
 ```
 
