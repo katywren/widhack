@@ -1,0 +1,31 @@
+---
+title: "Preliminary Data Exploration"
+author: "Kathryn Reynolds"
+date: "15/10/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(lubridate)
+```
+
+
+## Test data from https://ourworldindata.org/coronavirus-testing
+
+
+```{r Import Data}
+wid   <-read.csv("COVID19 Hackathon Dataset.csv")
+tests <-read.csv("owid-covid-data.csv")
+```
+
+
+```{r Join By Country}
+tests<-tests %>% 
+  rename(Countries = location) %>% 
+  rename(Date = date)
+  
+joined<-left_join(wid, tests, by = NULL)
+
+```
+
